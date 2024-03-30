@@ -1,0 +1,2 @@
+# bg
+BoardGame Optimized Resolver
