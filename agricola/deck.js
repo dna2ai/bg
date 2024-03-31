@@ -1,11 +1,12 @@
 const i_act = require('./action');
 const i_deepclone = require('./deepclone');
 
-const seasons = [4, 3, 2, 2, 2];
+const seasons = [4, 3, 2, 2, 2, 1];
 
 function deck_new() {
    const deck = {};
    deck.players = [];
+   deck.player_logs = [];
    deck.actions = i_act.BasicActionCard.map(x => i_deepclone(x));
    deck.major_cards = i_act.MajorImprovementCard.map(x => i_deepclone(x));
 
@@ -15,7 +16,7 @@ function deck_new() {
    let base = 0;
    for (let i = 0; i < seasons.length; i++) {
       const n = seasons[i];
-      for (let j = 0; j < n; j++) {
+      for (let j = 0; j < n-1; j++) {
          const i1 = ~~(Math.random() * n);
          const i2 = ~~(Math.random() * n);
          if (i1 == i2) continue;
@@ -47,17 +48,16 @@ function _fill_acc_action(action) {
 function _cleanup_action(action) {
    if (action.picked != -1) action.picked = -1;
 }
-function _traverse_action(action) {
+function traverse_action(action, fns) {
    if (action.action) {
-      _traverse_action(action.action);
+      traverse_action(action.action, fns);
       return;
    }
    if (action.after) {
-      _traverse_action(action.after);
+      traverse_action(action.after, fns);
    }
    if (action.one) {
-      _fill_acc_action(action);
-      _cleanup_action(action);
+      fn.forEach(fn => fn(action))
       return;
    }
    let action_list = null;
@@ -65,7 +65,7 @@ function _traverse_action(action) {
    else if (action.or) action_list = action.or;
    else if (action.and) action_list = action.and;
    if (action_list) {
-      action_list.forEach(x => _traverse_action(x));
+      action_list.forEach(x => traverse_action(x, fns));
    }
 }
 
@@ -81,7 +81,7 @@ function deck_tick_round(deck) {
    deck.round ++;
    // fill acc actions
    deck_add_action(deck, deck.rounds.shift());
-   deck.actions.forEach(x => _traverse_action(x));
+   deck.actions.forEach(x => traverse_action(x, [_fill_acc_action, _cleanup_action]));
 }
 
 function deck_score(deck) {
@@ -94,4 +94,5 @@ module.exports = {
    deck_add_player,
    deck_tick_round,
    deck_score,
+   traverse_action,
 };
