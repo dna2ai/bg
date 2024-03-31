@@ -19,7 +19,7 @@ function deck_new() {
          const i1 = ~~(Math.random() * n);
          const i2 = ~~(Math.random() * n);
          if (i1 == i2) continue;
-         const x = deck.rounds[i1];
+         const x = deck.rounds[base+i1];
          deck.rounds[base+i1] = deck.rounds[base+i2];
          deck.rounds[base+i2] = x;
       }
@@ -70,9 +70,15 @@ function _traverse_action(action) {
 }
 
 function deck_tick_round(deck) {
+   if (deck.round > 14) return; // game over
    // TODO: check season
+
+   if (deck.round == 14) {
+      deck.round ++;
+      return;
+   }
+
    deck.round ++;
-   if (deck.round >= 14) return; // game over
    // fill acc actions
    deck_add_action(deck, deck.rounds.shift());
    deck.actions.forEach(x => _traverse_action(x));
