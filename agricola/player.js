@@ -1,5 +1,6 @@
-function player_new() {
+function player_new(id) {
    const p = {};
+   p.id = id;
    p.sheep = 0;
    p.boar = 0;
    p.cattle = 0;
@@ -10,6 +11,7 @@ function player_new() {
    p.grain = 0;
    p.vegetable = 0;
    p.actors = 2;
+   p.acted_actors = 0;
    p.children = 0;
    p.roomlv = 0;
    p.fields = [
@@ -18,13 +20,14 @@ function player_new() {
       [{}, {}, {}, {}, {}],
    ];
    p.fences = [ // 0: no fence, 1: fence, 9: unavailable
-       9, 0, 0, 0, 0,
-      9, 0, 0, 0, 0, 0,
-       9, 0, 0, 0, 0,
-      9, 0, 0, 0, 0, 0,
-       0, 0, 0, 0, 0,
-      0, 0, 0, 0, 0, 0,
-   ]; //             ^ fencing from right-bottom side
+      [ 9, 0, 0, 0, 0,  ]
+      [9, 0, 0, 0, 0, 0,]
+      [ 9, 0, 0, 0, 0,  ]
+      [9, 0, 0, 0, 0, 0,]
+      [ 0, 0, 0, 0, 0,  ]
+      [0, 0, 0, 0, 0, 0,]
+      [ 0, 0, 0, 0, 0,  ]
+   ]; //              ^ fencing from right-bottom side
    p.minor_cards = [];
    p.occupations = [];
    p.applied_minor_cards = [];
@@ -32,7 +35,7 @@ function player_new() {
    p.applied_occupations = [];
    p.private_actions = [];
    p.public_effects = [];
-   p.public_actions = []; // TODO: consider if need this, we may merge into deck.actions
+   p.public_actions = []; // TODO: think about if need this, we may merge into deck.actions
    return p;
 }
 
