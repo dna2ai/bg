@@ -21,7 +21,7 @@ const BasicAction = [
    { name: 'learning' },
    { name: 'minor_improvement' },
    { name: 'major_improvement' },
-   { name: 'meeting_place' },
+   { name: 'first_player' },
 ];
 
 const RoundActionCard = [
@@ -42,7 +42,7 @@ const RoundActionCard = [
 ];
 
 const BasicActionCard = [
-   { name: 'meeting_place', action: { any: [{ one: 'meeting_place' }, { one: 'minor_improvement' }] } },
+   { name: 'meeting_place', action: { any: [{ one: 'first_player' }, { one: 'minor_improvement' }] } },
    { name: 'farm_expansion', action: { any: [{ one: 'room_building', max: -1 }, { one: 'stable_building', max: -1 }] } },
    { name: 'grain_seeds', action: { one: 'grain' } },
    { name: 'farm_land', action: { one: 'plowing' } },
