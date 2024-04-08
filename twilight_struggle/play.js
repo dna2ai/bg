@@ -1429,7 +1429,7 @@ console.log('- effect', this.side, cmd, r, effect.area || '-');
       const finf = this.side === 's' ? 's_inf' : 'u_inf';
       const einf = this.side === 's' ? 'u_inf' : 's_inf';
       const map_inf_fn = this.side === 's' ? i_deck.s_map_inf : i_deck.u_map_inf;
-      while (opval) {
+      while (opval && options.length) {
          if (opval === 1) {
             options = options.filter(x => {
                const mobj = this.deck.map.item[x];
@@ -1590,6 +1590,9 @@ console.log('- effect', this.side, cmd, r, effect.area || '-');
    roll_die() { return i_deck.random(6)+1; }
 
    cid1_cncard_only_asia() {
+      // 213 切尔诺贝利
+      const cid213 = this.deck.turn_buf['213'];
+      if (cid213 && cid213.area === 'a') return false;
       return Math.random() > 0.5;
    }
    cid3_choose() {
