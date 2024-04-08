@@ -54,7 +54,6 @@ class Actor {
    pick_headline() {}
    pick_round_card() {}
    choose_or_op_event(card) {}
-   choose_or_inf_realign_coup_space(card) {}
    card_inf(opval, max, options) {}
    card_enemy_inf(opval, max, options) {}
    inf(opval, options) {}
@@ -75,8 +74,7 @@ class Actor {
 
    // pick_headline()
    // pick_round_card() -> choose_or_op_event()
-   //    -> choose_or_inf_realign_coup_space()
-   //       -> inf(), realign(), coup()
+   //    -> inf(), realign(), coup()
 }
 
 class Player extends Actor {
@@ -109,7 +107,8 @@ class RandomBot extends Actor {
          mobj[finf] ++;
       }
    }
-   pick_headline() {
+   pick_headline(opponent_headline) {
+      // opponent_headline is null if not known
       const cards = this.side === 's' ? this.deck.s_cards : this.deck.u_cards;
       const i = i_deck.random(cards.length);
       const one = cards[i];
@@ -163,37 +162,38 @@ class RandomBot extends Actor {
       }
       return 3;
    }
-   choose_or_inf_realign_coup_space(card) {
-      if (card.type === '0n') return null;
-      const opval = this.opval(card);
-      let n = 4;
+   card_effect_op_actions(card, effect) {
+      const opval = effect.opval;
+      let actions = effect.action || ['i', 'r', 'c'];
+      let area = null;
+
+      // if opval not enough, skip space race action
+      let spacelv = 0, spacedid = false;
+      const cidsr2 = this.deck.game_buf.sr2;
+      const spacebuf = cidsr2 && cidsr2.target === this.side ? 1 : 0;
       if (this.side === 's') {
-         // TODO: apply spacerace-2 effect if has or spacrace max
-         if (this.deck.s_space_n >= 1 || opval < 2) n --;
+         spacelv = this.deck.s_space;
+         spacedid = this.deck.s_space_n > spacebuf;
       } else {
-         if (this.deck.u_space_n >= 1 || opval < 2) n --;
+         spacelv = this.deck.u_space;
+         spacedid = this.deck.s_space_n > spacebuf;
       }
-      let s = i_deck.random(n);
+      if (spacedid || opval < space_op_req[spacelv]) {
+         actions = actions.filter(x => x !== 's');
+      }
 
       // 114 古巴导弹危机
       const cid114 = this.deck.turn_buf['114'];
       if (cid114 && cid114.target === this.side) {
-         while(s === 2) s = i_deck.random(n);
+         actions = actions.filter(x => x !== 'c');
       }
 
-      switch (s) {
-      case 0: return 'i';
-      case 1: return 'r';
-      case 2: return 'c';
-      case 3: return 's';
-      }
-      return null;
-   }
-   card_effect_op_actions(card, effect) {
-      const opval = effect.opval;
-      const actions = effect.action || ['i', 'r', 'c'];
-      let area = null;
       let cmd = actions[i_deck.random(actions.length)];
+
+      // 131 花朵的力量
+      if (cmd !== 's' && this.deck.turn_buf['131'] && this.side === 'u') {
+         if (card.id === 6 || card.id === 22 || card.id === 139 || card.id === 3 || card.id === 206) this.deck.vp -= 2;
+      }
 
       // 221 尤里和萨曼莎
       if (cmd === 'c' && this.deck.turn_buf['221'] && this.side === 'u') {
@@ -226,12 +226,6 @@ class RandomBot extends Actor {
          area = Object.keys(area);
       }
 
-      // if opval not enough, skip space race action
-      const spacelv = this.side === 's' ? this.deck.s_space : this.deck.u_space;
-      if (cmd === 's' && opval < space_op_req[spacelv]) {
-         while (cmd === 's') cmd = actions[i_deck.random(actions.length)];
-      }
-
       let r;
       switch(cmd) {
       case 'i': r = this.inf(opval, area); break;
@@ -248,6 +242,7 @@ console.log('- effect', this.side, cmd, r, effect.area || '-');
       max = max > 0 ? max : -max;
       const limit = {};
       if (!options) options = Object.keys(this.deck.map.item);
+      options = options.filter(x => x != 1 && x != 34);
       const map_inf_fn = this.side === 's' ? i_deck.s_map_inf : i_deck.u_map_inf;
       while (opval && options.length) {
          const i = i_deck.random(options.length);
@@ -418,6 +413,8 @@ console.log('- effect', this.side, cmd, r, effect.area || '-');
       // [8] 1-2
       const dieval = this.roll_die();
       const cur_space = this.side === 's' ? this.deck.s_space : this.deck.u_space;
+      if (this.side === 's') this.deck.s_space_n++;
+                        else this.deck.u_space_n++;
       let ok = false;
       switch(cur_space) {
       case 0: if (dieval <= 3) ok = true; break;
@@ -451,8 +448,8 @@ console.log('- effect', this.side, cmd, r, effect.area || '-');
       // Pakistan, India
       return Math.random() > 0.5 ? 73 : 74;
    }
-   cid7_area_choose(cids) {
-      return cids[i_deck.random(cids.length)];
+   cid7_area_choose(cards) {
+      return cards[i_deck.random(cards.length)];
    }
    cid19_boycott() { return Math.random() > 0.5; }
    cid21_reinf_n() { return i_deck.random(5); }
@@ -573,6 +570,9 @@ console.log('- effect', this.side, cmd, r, effect.area || '-');
       r.push(sec);
       return r;
    }
+
+   choose_round8() { return Math.random() > 0.5; }
+   choose_discard_held() { return Math.random() > 0.5; }
 }
 
 module.exports = {

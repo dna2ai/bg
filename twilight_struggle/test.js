@@ -92,16 +92,15 @@ function act_event(deck, fp, ep, card, effect) {
       break; }
    case 7: { // 剑桥五杰 ok
       if (deck.turn >= 7) { applied = false; break; }
-      const sp = side === 's' ? fp : ep;
-      const cids = deck.u_cards.filter(x => i_play.scoring_cards.includes(x.id)).map(x => x.id);
-      if (cids.length) {
-         const area = i_play.scoring_cards_area[i_play.scoring_cards.indexOf(sp.cid7_area_choose(cids))];
-         const p = side === 's' ? fp : ep;
-         p.card_inf(1, 1, Object.keys(deck.map[area]));
+      const sp = deck.s_player;
+      const cards = deck.u_cards.filter(x => i_play.scoring_cards.includes(x.id));
+      if (cards.length) {
+         const area = i_play.scoring_cards_area[i_play.scoring_cards.indexOf(sp.cid7_area_choose(cards).id)];
+         sp.card_inf(1, 1, Object.keys(deck.map[area]));
       }
       break; }
    case 8: { // 东欧剧变 ok
-      const up = side === 's' ? ep : fp;
+      const up = deck.u_player;
       const mids = up.card_enemy_inf(3, 1, Object.keys(deck.map.ee));
       if (deck.turn >= 7) {
          mids.forEach(x => {
@@ -121,15 +120,15 @@ function act_event(deck, fp, ep, card, effect) {
    case 10: { // 美英特殊关系 ok
       if (i_deck.deck_check_control(deck, 23) >= 0) { applied = false; break; }
       const cid9 = deck.game_buf['9'];
-      const p = side === 's' ? ep : fp;
+      const up = deck.u_player;
       if (cid9) {
          deck.vp += 2;
-         const mids = p.card_inf(1, 1, Object.keys(deck.map.we));
+         const mids = up.card_inf(1, 1, Object.keys(deck.map.we));
          const mid = mids[0];
          const mobj = deck.map.item[mid];
          if (mobj) mobj.u_inf ++;
       } else {
-         p.card_inf(1, 1, deck.map.edge[23]);
+         up.card_inf(1, 1, deck.map.edge[23]);
       }
       break; }
    case 11: { // 五年计划 ok
@@ -162,7 +161,7 @@ function act_event(deck, fp, ep, card, effect) {
       deck.turn_buf['14'] = { target: eside };
       break; }
    case 15: { // 去殖民地化 ok
-      const sp = side === 's' ? fp : ep;
+      const sp = deck.s_player;
       sp.card_inf(4, 1, Object.keys(deck.map.af).concat(Object.keys(deck.map.sea)));
       break; }
    case 16: { // 罗马尼亚颠覆 ok
@@ -233,11 +232,11 @@ function act_event(deck, fp, ep, card, effect) {
       if (v >= 4) { mobj.s_inf += mobj.u_inf; mobj.u_inf = 0; deck.vp -= 2; }
       break; }
    case 23: { // 经济互助委员会 * ok
-      const p = side === 's' ? fp : ep;
-      p.card_inf(4, 1, Object.keys(deck.map.ee).filter(x => i_deck.deck_check_control(deck, x) >= 0));
+      const sp = deck.s_player;
+      sp.card_inf(4, 1, Object.keys(deck.map.ee).filter(x => i_deck.deck_check_control(deck, x) >= 0));
       break; }
    case 24: { // 独立的红色 * ok
-      const up = side === 's' ? ep : fp;
+      const up = deck.u_player;
       const mid = up.cid24_choose();
       const mobj = deck.map.item[mid];
       if (mobj.u_inf < mobj.s_inf) {
@@ -251,7 +250,7 @@ function act_event(deck, fp, ep, card, effect) {
       deck.game_buf['25'] = {};
       break; }
    case 26: { // 封锁 * ok
-      const up = side === 's' ? ep : fp;
+      const up = deck.u_player;
       const c0 = up.cid26_discard();
       if (c0) {
          deck.u_cards.splice(deck.u_cards.indexOf(c0), 1);
@@ -267,7 +266,7 @@ function act_event(deck, fp, ep, card, effect) {
       break; }
    case 28: { // 建立中情局 * ok
       // memorize s_cards for u_player
-      const up = side === 's' ? ep : fp;
+      const up = deck.u_player;
       effect.s_cards = deck.s_cards;
       effect.side = 'u';
       effect.opval = up.opval(card);
@@ -275,7 +274,7 @@ function act_event(deck, fp, ep, card, effect) {
       up.card_effect_op_actions(card, effect);
       break; }
    case 29: { // 苏伊士运河危机 * ok
-      const sp = side === 's' ? fp : ep;
+      const sp = deck.s_player;
       // UK, France, Israel
       sp.card_enemy_inf(4, 2, [23, 28, 46]);
       break; }
@@ -294,12 +293,12 @@ function act_event(deck, fp, ep, card, effect) {
       fp.card_effect_op_actions(card, effect);
       break; }
    case 31: { // 马歇尔计划 * ok
-      const up = side === 's' ? ep : fp;
+      const up = deck.u_player;
       up.card_inf(7, 1, Object.keys(deck.map.we).filter(x => i_deck.deck_check_control(deck, x) <= 0));
       deck.game_buf['31'] = {};
       break; }
    case 32: { // 华沙条约组织成立 * ok
-      const sp = side === 's' ? fp : ep;
+      const sp = deck.s_player;
       const mids = sp.cid32_remove_inf()
       if (mids) {
          mids.forEach(x => { deck.map.item[x].u_inf = 0; });
@@ -315,7 +314,7 @@ function act_event(deck, fp, ep, card, effect) {
       deck.turn_buf['34'] = {};
       break; }
    case 35: { // 杜鲁门主义 * ok
-      const up = side === 's' ? ep : fp;
+      const up = deck.u_player;
       const mid = up.cid35_remove_inf();
       if (!mid) { applied = false; break; }
       deck.map.item[mid].s_inf = 0;
@@ -333,7 +332,7 @@ function act_event(deck, fp, ep, card, effect) {
       i_deck.deck_score_area(deck, 'e');
       break; }
    case 101: { // “不要问你的国家能为你做什么……” * ok
-      const up = side === 's' ? ep : fp;
+      const up = deck.u_player;
       const list = up.cid101_discard();
       let n = list.length;
       if (deck.card_pile.length < n) {
@@ -363,7 +362,7 @@ function act_event(deck, fp, ep, card, effect) {
          if (i_deck.deck_check_control(deck, mid) < 0) ok = true;
       });
       if (!ok) { applied = false; break; }
-      const up = side === 's' ? ep : fp;
+      const up = deck.u_player;
       effect.discard = up.cid103_adjust();
       break; }
    case 104: { // 傀儡政府 * ok
@@ -371,7 +370,7 @@ function act_event(deck, fp, ep, card, effect) {
          const mobj = deck.map.item[x];
          return mobj.s_inf === 0 && mobj.u_inf === 0;
       });
-      const up = side === 's' ? ep : fp;
+      const up = deck.u_player;
       up.card_inf(3, 1, mids);
       break; }
    case 105: { // 德国总统维利·勃兰特 * ok
@@ -434,7 +433,7 @@ function act_event(deck, fp, ep, card, effect) {
    case 112: { // 独行枪手 * ok
       // TODO: memorize u_cards for s_player
       effect.u_cards = deck.u_cards;
-      const sp = side === 's' ? fp : ep;
+      const sp = deck.s_player;
       effect.u_cards = deck.u_cards;
       effect.opval = sp.opval(card);
       effect.side = 's';
@@ -467,7 +466,7 @@ function act_event(deck, fp, ep, card, effect) {
       deck.game_buf['116'] = { once: true };
       break; }
    case 117: { // 南非动荡 ok
-      const sp = side === 's' ? fp : ep;
+      const sp = deck.s_player;
       const mobj = deck.map.item[64];
       if (sp.cid117_1in2()) {
          mobj.s_inf += 2;
@@ -484,7 +483,7 @@ function act_event(deck, fp, ep, card, effect) {
          applied = false;
          break;
       }
-      const up = side === 's' ? ep : fp;
+      const up = deck.u_player;
       if (up.cid118_return(c0)) {
          applied = false;
          break;
@@ -533,8 +532,8 @@ function act_event(deck, fp, ep, card, effect) {
          if (stat[0] >= 2) ss++;
          if (stat[1] >= 2) us++;
       });
-      const sp = side === 's' ? fp : ep;
-      const up = side === 's' ? ep : fp;
+      const sp = deck.s_player;
+      const up = deck.u_player;
       ss += sp.roll_die();
       us += sp.roll_die();
       if (ss === us) break;
@@ -575,16 +574,16 @@ function act_event(deck, fp, ep, card, effect) {
    case 128: { // 乌苏里江冲突 * ok
       if (deck.cncard === 2) deck.cncard === 1;
       else if (deck.cncard === 3 || deck.cncard === 4) {
-         const up = side === 's' ? ep : fp;
+         const up = deck.u_player;
          up.card_inf(4, 2, Object.keys(deck.map.a));
       }
       break; }
    case 129: { // 殖民后卫 ok
-      const up = side === 's' ? ep : fp;
+      const up = deck.u_player;
       up.card_inf(4, 1, Object.keys(deck.map.af)).concat(Object.keys(deck.map.sea));
       break; }
    case 130: { // 解放神学 ok
-      const sp = side === 's' ? fp : ep;
+      const sp = deck.s_player;
       sp.card_inf(3, 2, Object.keys(deck.map.ca));
       break; }
    case 131: { // 花朵的力量 * ok
@@ -602,11 +601,11 @@ function act_event(deck, fp, ep, card, effect) {
       fp.card_effect_op_actions(card, effect);
       break; }
    case 133: { // 美国之音 ok
-      const up = side === 's' ? ep : fp;
+      const up = deck.u_player;
       up.card_enemy_inf(4, 2, Object.keys(deck.map.item).filter(x => !deck.map.e[x]));
       break; }
    case 134: { // 切·格瓦拉 ok
-      const sp = side === 's' ? fp : ep;
+      const sp = deck.s_player;
       const snapshot = {};
       Object.values(deck.map.ca).forEach(x => { snapshot[x.id] = x.u_inf; });
       Object.values(deck.map.sa).forEach(x => { snapshot[x.id] = x.u_inf; });
@@ -628,7 +627,7 @@ function act_event(deck, fp, ep, card, effect) {
          applied = false;
          break;
       }
-      const sp = side === 's' ? fp : ep;
+      const sp = deck.s_player;
       const mids = sp.cid135_choose();
       if (!mids) { applied = false; break; }
       mids.forEach(x => { deck.map.item[x].u_inf = 0; });
@@ -689,7 +688,7 @@ function act_event(deck, fp, ep, card, effect) {
       mobj.u_inf ++;
       break; }
    case 142: { // 美洲国家组织创立 * ok
-      const up = side === 's' ? ep : fp;
+      const up = deck.u_player;
       up.card_inf(2, 2, Object.keys(deck.map.ca).concat(Object.keys(deck.map.sa)));
       break; }
    case 143: { // 约翰·保罗二世当选教皇 * ok
@@ -734,7 +733,7 @@ function act_event(deck, fp, ep, card, effect) {
       deck.gameover = true;
       break; }
    case 204: { // 奥德里奇·艾姆斯 * ok
-      const sp = side === 's' ? fp : ep;
+      const sp = deck.s_player;
       const c0 = sp.cid204_discard(deck.u_cards);
       if (!c0) { applied = false; break; }
       deck.u_cards.splice(deck.u_cards.indexOf(c0), 1);
@@ -745,7 +744,7 @@ function act_event(deck, fp, ep, card, effect) {
       i_deck.deck_defcon_inc(deck, 1);
       // 209 改革家
       if (deck.game_buf['209']) {
-         const sp = side === 's' ? fp : ep;
+         const sp = deck.s_player;
          effect.opval = sp.opval(card);
          effect.side = 's';
          effect.action = ['i', 'r'];
@@ -781,7 +780,7 @@ function act_event(deck, fp, ep, card, effect) {
       effect.side = 's';
       effect.action = ['c'];
       effect.area = deck.map.edge[7].map(x => `+${x}`);
-      const sp = side === 's' ? fp : ep;
+      const sp = deck.s_player;
       sp.card_effect_op_actions(card, effect);
       break; }
    case 208: { // 北海石油 * ok
@@ -789,7 +788,7 @@ function act_event(deck, fp, ep, card, effect) {
       deck.turn_buf['208'] = {};
       break; }
    case 209: { // 改革家 * ok
-      const sp = side === 's' ? fp : ep;
+      const sp = deck.s_player;
       if (deck.vp < 0) {
          sp.card_inf(6, 2, Object.keys(deck.map.e));
       } else {
@@ -804,7 +803,7 @@ function act_event(deck, fp, ep, card, effect) {
       effect.side = 'u';
       effect.action = ['c', 'r'];
       effect.area = ['e'];
-      const up = side === 's' ? ep : fp;
+      const up = deck.u_player;
       up.card_effect_op_actions(card, effect);
       break; }
    case 211: { // 伊朗门丑闻 * ok
@@ -839,21 +838,21 @@ function act_event(deck, fp, ep, card, effect) {
       }
       break; }
    case 213: { // 切尔诺贝利 * ok
-      const up = side === 's' ? ep : fp;
+      const up = deck.u_player;
       const area_code = up.cid213_area_choose();
       deck.turn_buf['213'] = { area: area_code };
       break; }
    case 214: { // 轰炸海军陆战队军营 * ok
       const mobj = deck.map.item[44]; // Libanon
       mobj.u_inf = 0;
-      const sp = side === 's' ? fp : ep;
+      const sp = deck.s_player;
       sp.card_enemy_inf(2, 2, Object.keys(deck.map.me));
       break; }
    case 215: { // 苏联击落韩国航空公司007航班 * ok
       i_deck.deck_defcon_dec(deck, 1);
       deck.vp += 2;
       if (i_deck.deck_check_control(deck, 85) < 0) { // South Korea
-         const up = side === 's' ? ep : fp;
+         const up = deck.u_player;
          effect.opval = up.opval(card);
          effect.side = 'u';
          effect.action = ['i', 'r'];
@@ -889,15 +888,15 @@ function act_event(deck, fp, ep, card, effect) {
       break; }
    case 220: { // 部署潘兴II型导弹 * ok
       deck.vp --;
-      const sp = side === 's' ? fp : ep;
+      const sp = deck.s_player;
       sp.card_enemy_inf(3, 1, Object.keys(deck.map.we));
       break; }
    case 221: { // 尤里和萨曼莎 * ok
       deck.turn_buf['221'] = {};
       break; }
    case 222: { // 拉丁美洲债务危机
-      const sp = side === 's' ? fp : ep;
-      const up = side === 's' ? ep : fp;
+      const sp = deck.s_player;
+      const up = deck.u_player;
       const c0 = up.cid222_discard();
       if (c0) {
          deck.u_cards.splice(deck.u_cards.indexOf(c0), 1);
@@ -933,7 +932,6 @@ function play_one_card(deck, fp, ep, card) {
 console.log(fp.side, card.id, card.name);
    const opval = fp.opval(card);
    const opev = fp.choose_or_op_event(card);
-   const cmd = fp.choose_or_inf_realign_coup_space(card);
 
    // 116 “我们会埋葬你们的”
    if (deck.game_buf['116'] && fp.side === 'u') {
@@ -941,14 +939,9 @@ console.log(fp.side, card.id, card.name);
       if (!(card.id === 30 && (opev & 0x01) === 1)) deck.vp -= 3;
    }
 
-   // 131 花朵的力量
-   if (cmd !== 's' && (opev & 0x01 === 1) && deck.turn_buf['131'] && fp.side === 'u') {
-      if (card.id === 6 || card.id === 22 || card.id === 139 || card.id === 3 || card.id === 206) deck.vp -= 2;
-   }
-
    const opevseq = [];
-   if ((opev & 0x01) && cmd !== 's') opevseq.push(1);
-   if ((opev & 0x02) || (card.id === 1 && cmd === 's')) opevseq.push(2);
+   if (opev & 0x01) opevseq.push(1);
+   if (opev & 0x02) opevseq.push(2);
    if (opevseq.length === 2 && Math.random() > 0.5) {
       opevseq[0] = 2;
       opevseq[1] = 1;
@@ -956,9 +949,11 @@ console.log(fp.side, card.id, card.name);
    const effect = {};
    while (opevseq.length) {
       const flag = opevseq.pop();
-      if (flag === 1) {
-         if (!act_event(deck, fp, ep, card, effect) && opev & 0x02 === 0) {
-            opevseq.push(2);
+      if (flag === 1 && !effect.opsr) {
+         effect.evact = true;
+         if (!act_event(deck, fp, ep, card, effect)) {
+            effect.evact = false;
+            if ((opev & 0x02) === 0) opevseq.push(2);
          }
 console.log('- event', JSON.stringify(effect));
       } else if (flag === 2) {
@@ -966,10 +961,12 @@ console.log('- event', JSON.stringify(effect));
          const op = {
             opval: opval,
             side: fp.side,
-            action: ['i', 'r', 'c', 's']
+            action: ['i', 'r', 'c']
          };
+         if (!effect.evact) op.action.push('s');
          const r = fp.card_effect_op_actions(card, op);
-         if ((opev & 0x01) === 0 || (card.id !== 1 && cmd === 's')) {
+         if (r[0] === 's') effect.opsr = true;
+         if ((opev & 0x01) === 0 || effect.opsr) {
             deck.discard_pile.push(card);
          }
 console.log('- op:', r[0], r[1]);
@@ -979,6 +976,29 @@ console.log('- op:', r[0], r[1]);
 
 function tick_player_round(deck, fp, ep) {
    let card;
+
+   // 106 捕熊陷阱
+   const cid106 = deck.turn_buf['106'];
+   if (fp === deck.s_player && cid106 && !cid106.lock) {
+      const c0 = deck.s_player.cid106_cid110_buf_discard();
+      if (c0) {
+         deck.discard_pile.push(c0);
+         const dieval = deck.s_player.roll_die();
+         if (dieval <= 4) delete deck.turn_buf['106'];
+      } else cid106.lock = true;
+   }
+
+   // 110 困境
+   const cid110 = deck.turn_buf['110'];
+   if (fp === deck.u_player && cid110 && !cid110.lock) {
+      const c0 = deck.u_player.cid106_cid110_buf_discard();
+      if (c0) {
+         deck.discard_pile.push(c0);
+         const dieval = deck.u_player.roll_die();
+         if (dieval <= 4) delete deck.turn_buf['110'];
+      } else cid110.lock = true;
+   }
+
 
    // 108 导弹嫉妒
    const cid108 = deck.turn_buf['108'];
@@ -1023,9 +1043,22 @@ function main() {
    for (let i = 0; i < 10; i++) {
       console.log(`=============== Turn ${i+1}`);
       i_deck.deck_turn_tick(deck);
+
       // headline phase
-      const s_headline = s_player.pick_headline();
-      const u_headline = u_player.pick_headline();
+      let s_headline, u_headline;
+      // spacerace-4
+      if (deck.game_buf.sr4) {
+         if (deck.game_buf.sr4.target === 's') {
+            u_headline = u_player.pick_headline();
+            s_headline = s_player.pick_headline(u_headline);
+         } else {
+            s_headline = s_player.pick_headline();
+            u_headline = u_player.pick_headline(s_headline);
+         }
+      } else {
+         s_headline = s_player.pick_headline();
+         u_headline = u_player.pick_headline();
+      }
       if (u_headline.id === 5) {
          // 5 背叛者
          deck.discard_pile.push(s_headline);
@@ -1047,44 +1080,49 @@ console.log('headline:', 'u=', u_headline.id, u_headline.name, 's=', s_headline.
             if (check_game_over(deck, 's')) break;
          }
       }
+
       // action phase
       const round_n = deck.round;
       while (deck.round--) {
          console.log(`=============== Round ${round_n-deck.round}`);
 
-         // 106 捕熊陷阱
-         const cid106 = deck.turn_buf['106'];
-         if (cid106 && !cid106.lock) {
-            const c0 = deck.s_player.cid106_cid110_buf_discard();
-            if (c0) {
-               deck.discard_pile.push(c0);
-               const dieval = deck.s_player.roll_die();
-               if (dieval <= 4) delete deck.turn_buf['106'];
-            } else cid106.lock = true;
-         }
-
          tick_player_round(deck, s_player, u_player);
          if (check_game_over(deck, 's')) break;
-
-         // 110 困境
-         const cid110 = deck.turn_buf['110'];
-         if (cid110 && !cid110.lock) {
-            const c0 = deck.u_player.cid106_cid110_buf_discard();
-            if (c0) {
-               deck.discard_pile.push(c0);
-               const dieval = deck.u_player.roll_die();
-               if (dieval <= 4) delete deck.turn_buf['110'];
-            } else cid110.lock = true;
-         }
 
          tick_player_round(deck, u_player, s_player);
          if (check_game_over(deck, 'u')) break;
       }
       if (deck.gameover) break;
 
-      // TODO: 208 北海石油 (us 8)
-      // TODO: space (ussr/us 8)
-      // TODO: space (ussr/us discard)
+      // spacerace-8
+      if (deck.game_buf.sr8 && deck.game_buf.sr6.target === 's') {
+         if (deck.s_player.choose_round8()) {
+            tick_player_round(deck, s_player, u_player);
+            if (check_game_over(deck, 's')) break;
+         }
+      }
+      // 208 北海石油
+      // spacerace-8
+      if (deck.game_buf.sr8 || deck.turn_buf['208']) {
+         if (deck.u_player.choose_round8()) {
+            tick_player_round(deck, u_player, s_player);
+            if (check_game_over(deck, 'u')) break;
+         }
+      }
+      // spacerace-6
+      if (deck.game_buf.sr6) {
+         if (deck.game_buf.sr6.target === 's') {
+            if (deck.s_player.choose_discard_held()) {
+               deck.s_cards.forEach(x => deck.discard_pile.push(x));
+               deck.s_cards = [];
+            }
+         } else {
+            if (deck.u_player.choose_discard_held()) {
+               deck.u_cards.forEach(x => deck.discard_pile.push(x));
+               deck.u_cards = [];
+            }
+         }
+      }
 
       // 36 北美防空司令部
       if (deck.game_buf['36'] && deck.defcon === 2) {
@@ -1094,7 +1132,7 @@ console.log('headline:', 'u=', u_headline.id, u_headline.name, 's=', s_headline.
    console.log(JSON.stringify(deck.map.item, null, 3));
    if (deck.gameover) console.log('winner:', deck.winner);
    // TODO: if not gameover, turn 10, calc final score
-   console.log(deck.vp);
+   console.log(deck.vp, deck.defcon);
 }
 
 main();
