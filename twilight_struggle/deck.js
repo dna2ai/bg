@@ -111,8 +111,8 @@ function deck_turn_tick(deck) {
    // B
    const hand_size = deck.turn < 4 ? 8 : 9;
    const req_card_n = hand_size * 2 - deck.u_cards.length - deck.s_cards.length;
-if (deck.card_pile.filter(x => !x || !x.type).length) console.log('error card pile:', deck.card_pile);
-if (deck.discard_pile.filter(x => !x || !x.type).length) console.log('error discard pile:', deck.discard_pile);
+if (deck.card_pile.filter(x => !x || !x.type).length) { console.log('error card pile:', deck.card_pile); throw "bug card_pile"; }
+if (deck.discard_pile.filter(x => !x || !x.type).length) { console.log('error discard pile:', deck.discard_pile); throw "bug discard_pile"; }
    if (req_card_n > deck.card_pile.length) {
       deck.card_pile = card_pile_shuffle(
          deck.card_pile.concat(deck.discard_pile)
@@ -127,8 +127,8 @@ if (deck.discard_pile.filter(x => !x || !x.type).length) console.log('error disc
       const one = deck.card_pile.shift();
       deck.u_cards.push(one);
    }
-if (deck.s_cards.filter(x => !x || !x.type).length) console.log('error s cards:', deck.s_cards);
-if (deck.u_cards.filter(x => !x || !x.type).length) console.log('error u cards:', deck.u_cards);
+if (deck.s_cards.filter(x => !x || !x.type).length) { console.log('error s cards:', deck.s_cards); throw "bug s_cards"; }
+if (deck.u_cards.filter(x => !x || !x.type).length) { console.log('error u cards:', deck.u_cards); throw "bug u_cards"; }
 
    deck.s_space = Math.abs(deck.s_space);
    deck.u_space = Math.abs(deck.u_space);
@@ -315,6 +315,8 @@ const scoring_card = {
 };
 
 function deck_check_control(deck, mid) {
+   if (mid === 1) return -10;
+   if (mid === 34) return 10;
    const mobj = deck.map.item[mid];
    const d = mobj.s_inf - mobj.u_inf;
    if (d >= mobj.stab) return 10 + d - mobj.stab;
@@ -410,7 +412,7 @@ function deck_spacerace_award(deck, side, noaward) {
       break; }
    case 2: {
       if (fval > eval) {
-         deck.game_buf({ id: 'sr2', target: side });
+         deck.game_buf.push({ id: 'sr2', target: side });
       } else {
          deck.game_buf.splice(deck.game_buf.indexOf(deck.game_buf.find(x => x.id === 'sr2')));
       }
@@ -423,7 +425,7 @@ function deck_spacerace_award(deck, side, noaward) {
       break; }
    case 4: {
       if (fval > eval) {
-         deck.game_buf({ id: 'sr4', target: side });
+         deck.game_buf.push({ id: 'sr4', target: side });
       } else {
          deck.game_buf.splice(deck.game_buf.indexOf(deck.game_buf.find(x => x.id === 'sr4')));
       }
@@ -438,7 +440,7 @@ function deck_spacerace_award(deck, side, noaward) {
       break; }
    case 6: {
       if (fval > eval) {
-         deck.game_buf({ id: 'sr6', target: side });
+         deck.game_buf.push({ id: 'sr6', target: side });
       } else {
          deck.game_buf.splice(deck.game_buf.indexOf(deck.game_buf.find(x => x.id === 'sr6')));
       }
@@ -454,7 +456,7 @@ function deck_spacerace_award(deck, side, noaward) {
    case 8: {
       if (fval > eval) {
          if (noaward) deck.vp += vpd * 2;
-         deck.game_buf({ id: 'sr8', target: side });
+         deck.game_buf.push({ id: 'sr8', target: side });
       } else {
          deck.game_buf.splice(deck.game_buf.indexOf(deck.game_buf.find(x => x.id === 'sr8')));
       }

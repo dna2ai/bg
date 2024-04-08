@@ -77,13 +77,18 @@ class RandomBot extends Actor {
       const cards = this.side === 's' ? this.deck.s_cards : this.deck.u_cards;
       const i = i_deck.random(cards.length);
       const one = cards[i];
-      if (one.id == 30 /*UN intervetion*/) return this.pick_headline(cards);
+      if (one.id === 30 /*UN intervetion*/) return this.pick_headline(cards);
       cards.splice(i, 1);
       return one;
    }
    pick_round_card() {
       const cards = this.side === 's' ? this.deck.s_cards : this.deck.u_cards;
-      if (cards.length === 0) return null;
+      if (cards.length === 0) {
+         if ((this.side === 's' && this.deck.cncard === 1) || (this.side === 'u' && this.deck.cncard === 3)) {
+            if (Math.random() > 0.5) return this.deck.card_pile_all[0];
+         }
+         return null;
+      }
       let i = -1, one = null;
       const scards = cards.filter(x => scoring_cards.includes(x.id));
       if (scards.length > 0 && scards.length >= this.deck.round) {
@@ -130,6 +135,29 @@ class RandomBot extends Actor {
       case 3: return 's';
       }
       return null;
+   }
+   card_effect_op_actions(card, effect) {
+      const opval = effect.opval;
+      const actions = effect.action || ['i', 'r', 'c'];
+      let area = null;
+      const cmd = actions[i_deck.random(actions.length)];
+
+      if (effect.area) {
+         area = {};
+         effect.area.forEach(area_code => {
+            Object.keys(this.deck.map[area_code]).forEach(x => { area[x] = 1; });
+         });
+         area = Object.keys(area);
+      }
+
+      let r;
+      switch(cmd) {
+      case 'i': r = this.inf(opval, area); break;
+      case 'r': r = this.realign(opval, area); break;
+      case 'c': r = this.coup(opval, area); break;
+      }
+console.log('- effect', this.side, cmd, r, effect.area || '-');
+      return [cmd, r, effect.area || '-'];
    }
    card_inf(opval, max, options) {
       const r = [];
@@ -214,6 +242,7 @@ class RandomBot extends Actor {
             options.splice(i, 1);
          }
          r.push(mid);
+         if (!options.length) break;
       }
       return r;
    }
@@ -243,13 +272,38 @@ class RandomBot extends Actor {
    }
 
    spacerace(opval) {
-      // TODO: roll_die, check and increase space val
-      if (this.side === 's') {
-         this.deck.s_space_n ++;
-      } else {
-         this.deck.u_space_n ++;
+      // [1] 1-3
+      // [2] 1-4
+      // [3] 1-3
+      // [4] 1-4
+      // [5] 1-3
+      // [6] 1-4
+      // [7] 1-3
+      // [8] 1-2
+      const dieval = this.roll_die();
+      const cur_space = this.side === 's' ? this.deck.s_space : this.deck.u_space;
+      let ok = false;
+      switch(cur_space) {
+      case 0: if (dieval <= 3) ok = true; break;
+      case 1: if (dieval <= 4) ok = true; break;
+      case 2: if (dieval <= 3) ok = true; break;
+      case 3: if (dieval <= 4) ok = true; break;
+      case 4: if (dieval <= 3) ok = true; break;
+      case 5: if (dieval <= 4) ok = true; break;
+      case 6: if (dieval <= 3) ok = true; break;
+      case 7: if (dieval <= 2) ok = true; break;
+      default: return false;
       }
-      return false;
+      if (this.side === 's') {
+         if (ok) this.deck.s_space ++;
+         this.deck.s_space_n ++;
+         i_deck.deck_spacerace_award(this.deck, 's');
+      } else {
+         if (ok) this.deck.u_space ++;
+         this.deck.u_space_n ++;
+         i_deck.deck_spacerace_award(this.deck, 'u');
+      }
+      return ok;
    }
 
    roll_die() { return i_deck.random(6)+1; }
@@ -286,13 +340,13 @@ class RandomBot extends Actor {
       const n = candidates.length;
       if (n <= 4) return candidates;
       for (let i = 0; i < n; i++) {
-         const i1 = i_deck.randome(n);
-         const i2 = i_deck.randome(n);
+         const i1 = i_deck.random(n);
+         const i2 = i_deck.random(n);
          const t = candidates[i1];
          candidates[i1] = candidates[i2];
          candidates[i2] = t;
       }
-      return candiates.slice(0, 4);
+      return candidates.slice(0, 4);
    }
    cid35_remove_inf() {
       const candidates = Object.keys(this.deck.map.e).filter(x => i_deck.deck_check_control(this.deck, x) <= 0 && this.deck.map.item[x].s_inf > 0);
@@ -314,7 +368,7 @@ class RandomBot extends Actor {
    }
    cid103_adjust() {
       if (this.deck.card_pile.length < 5) {
-         this.deck.card_pile = i_deck.card_pile_shuffle(this.deck.card_pile.concat(deck.discard_pile));
+         this.deck.card_pile = i_deck.card_pile_shuffle(this.deck.card_pile.concat(this.deck.discard_pile));
          this.deck.discard_pile = [];
       }
       const cs5 = this.deck.card_pile.splice(0, 5);
