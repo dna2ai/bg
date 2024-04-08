@@ -59,8 +59,13 @@ class RandomBot extends Actor {
    constructor(deck, side) { super(deck, side); }
    opval(card) {
       if (!card) return 0;
-      const opval = parseInt(card.type.charAt(0), 10);
-      // TODO: opval - turn_buf, game_buf
+      let opval = parseInt(card.type.charAt(0), 10);
+      const cid14 = this.deck.turn_buf['14'];
+      if (cid14 && cid14.target === this.side) opval --;
+      const cid34 = this.deck.turn_buf['34'];
+      if (cid34 && this.side === 'u') opval ++;
+      if (opval < 1) opval = 1;
+      else if (opval > 4) opval = 4;
       return opval;
    }
    init_map() {
@@ -145,7 +150,25 @@ class RandomBot extends Actor {
       if (effect.area) {
          area = {};
          effect.area.forEach(area_code => {
-            Object.keys(this.deck.map[area_code]).forEach(x => { area[x] = 1; });
+            const ch1st = area_code.charAt(0);
+            if (ch1st === '-' || ch1st === '+') {
+               if (area_code === '-bf') {
+                  Object.keys(this.deck.map.bf).forEach(x => { delete area[x]; });
+               } else {
+                  const mid = (-parseInt(area_code)) || 0;
+                  if (mid) area[mid] = 1;
+               }
+            } else if (ch1st === '+') {
+               if (area_code === '+bf') {
+                  Object.keys(this.deck.map.bf).forEach(x => { area[x] = 2; });
+                  Object.keys(area).forEach(x => { if (area[x] !== 2) delete area[x]; });
+               } else {
+                  const mid = (parseInt(area_code)) || 0;
+                  if (mid) area[mid] = 1;
+               }
+            } else {
+               Object.keys(this.deck.map[area_code]).forEach(x => { area[x] = 1; });
+            }
          });
          area = Object.keys(area);
       }
@@ -209,6 +232,7 @@ console.log('- effect', this.side, cmd, r, effect.area || '-');
          }
          const i = i_deck.random(options.length);
          const mid = options[i];
+         if (mid === 1 || mid === 34) continue;
          const mobj = this.deck.map.item[mid];
          map_inf_fn(this.deck, mid);
          opval -= 1 + (mobj[einf] - mobj[finf] >= mobj.stab ? 1 : 0);
@@ -225,7 +249,7 @@ console.log('- effect', this.side, cmd, r, effect.area || '-');
       const einf = this.side === 's' ? 'u_inf' : 's_inf';
       Object.keys(options).forEach(x => {
          const mobj = this.deck.map.item[x];
-         if (mobj[einf] <= 0) delete options[x];
+         if (!mobj || mobj[einf] <= 0) delete options[x];
       });
       options = Object.keys(options);
       if (options.length === 0) return null;
@@ -258,7 +282,7 @@ console.log('- effect', this.side, cmd, r, effect.area || '-');
       const einf = this.side === 's' ? 'u_inf' : 's_inf';
       Object.keys(options).forEach(x => {
          const mobj = this.deck.map.item[x];
-         if (mobj[einf] <= 0) delete options[x];
+         if (!mobj || mobj[einf] <= 0) delete options[x];
       });
       options = Object.keys(options);
       if (options.length === 0) return null;
