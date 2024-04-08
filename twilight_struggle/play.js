@@ -1086,8 +1086,9 @@ function play_test_game() {
    deck.u_player = u_player;
    s_player.init_map();
    u_player.init_map();
-   for (let i = 0; i < 10; i++) {
-console.log(`\n\n[ Turn ${i+1} ]\n`);
+   let turn;
+   for (turn = 0; turn < 10; turn++) {
+console.log(`\n\n[ Turn ${turn+1} ]\n`);
       i_deck.deck_turn_tick(deck);
 
       // headline phase
@@ -1175,11 +1176,25 @@ console.log(`\n>> [ Round ${round_n-deck.round} ]`);
          deck.u_player.card_inf(1, 1, Object.keys(deck.map.item).filter(x => deck.map.item[x].u_inf > 0));
       }
    } // action round "for"
-console.log(JSON.stringify(deck.map.item, null, 3));
+   if (!deck.gameover && turn >= 10) {
+      deck.turn ++;
+
+      ['e', 'a', 'me', 'ca', 'sa', 'af'].forEach(
+         area_code => i_deck.deck_score_area(deck, area_code)
+      );
+
+      if (deck.cncard === 1 || deck.cncard === 2) deck.vp --;
+      else if (deck.cncard === 3 || deck.cncard === 4) deck.vp ++;
+
+      if (deck.vp < 0) deck.winner = 's';
+      else if (deck.vp > 0) deck.winner = 'u';
+      else deck.winner = '- (in a draw)';
+
+      deck.gameover = true;
+   }
    if (deck.gameover) console.log('winner:', deck.winner);
-   // TODO: if not gameover, turn 10, calc final score
-console.log(deck.vp, deck.defcon);
 }
+
 class Actor {
    constructor(deck, side) { this.deck = deck; this.side = side; }
    init_map() {}
