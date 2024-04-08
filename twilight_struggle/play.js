@@ -2,6 +2,7 @@ const i_deck = require('./deck');
 
 const scoring_cards = [37, 38, 39, 145, 146, 147, 148];
 const scoring_cards_area = ['me', 'a', 'e', 'ca', 'sa', 'af', 'sea'];
+const space_op_req = [0, 2, 2, 2, 2, 3, 3, 3, 4];
 
 function build_realign_coup_default_options(deck) {
    const options = {};
@@ -14,6 +15,34 @@ function build_realign_coup_default_options(deck) {
    }
    if (deck.defcon < 3) {
       Object.keys(deck.map.me).forEach(x => { delete options[x]; });
+   }
+   return options;
+}
+
+function s_filter_realign_coup_options(deck, options) {
+   // options = {}
+   const list = i_deck.deck_list_u_control(deck);
+   // 9 北大西洋公约组织
+   if (deck.game_buf['9']) {
+      list.forEach(x => {
+         if (!deck.map.e[x]) return;
+         // 13 戴高乐领导法国
+         if (x == 28 && deck.game_buf['13']) return; // France
+         // 105 德国总统维利·勃兰特
+         if (x == 31 && deck.game_buf['105']) return; // West Germany
+         delete options[x];
+      });
+   }
+   // 25 美日共同防卫协定
+   if (deck.game_buf['25']) delete options[84]; // Japan
+   return options;
+}
+function s_filter_inf_options(deck, options) {
+   // options = []
+   // 213 切尔诺贝利
+   const cid213 = deck.turn_buf['213'];
+   if (cid213) {
+      options = options.filter(x => !deck.map[cid213.area][x]);
    }
    return options;
 }
@@ -64,6 +93,8 @@ class RandomBot extends Actor {
       if (cid14 && cid14.target === this.side) opval --;
       const cid34 = this.deck.turn_buf['34'];
       if (cid34 && this.side === 'u') opval ++;
+      const cid137 = this.deck.turn_buf['137'];
+      if (cid137 && this.side === 's') opval ++;
       if (opval < 1) opval = 1;
       else if (opval > 4) opval = 4;
       return opval;
@@ -88,15 +119,26 @@ class RandomBot extends Actor {
    }
    pick_round_card() {
       const cards = this.side === 's' ? this.deck.s_cards : this.deck.u_cards;
+
+      // 106 捕熊陷阱
+      const cid106 = this.deck.turn_buf['106'];
+      // 110 困境
+      const cid110 = this.deck.turn_buf['110'];
+      let card_lock = !!(
+         this.side === 's' ?
+         (cid106 && cid106.lock) :
+         (cid110 && cid110.lock)
+      );
       if (cards.length === 0) {
-         if ((this.side === 's' && this.deck.cncard === 1) || (this.side === 'u' && this.deck.cncard === 3)) {
+         if (!card_lock && ((this.side === 's' && this.deck.cncard === 1) || (this.side === 'u' && this.deck.cncard === 3))) {
             if (Math.random() > 0.5) return this.deck.card_pile_all[0];
          }
          return null;
       }
       let i = -1, one = null;
       const scards = cards.filter(x => scoring_cards.includes(x.id));
-      if (scards.length > 0 && scards.length >= this.deck.round) {
+      if (scards.length === 0 && card_lock) return null;
+      if (card_lock || (scards.length > 0 && scards.length >= this.deck.round)) {
          i = i_deck.random(scards.length);
          one = scards[i];
          i = cards.indexOf(one);
@@ -123,7 +165,6 @@ class RandomBot extends Actor {
    }
    choose_or_inf_realign_coup_space(card) {
       if (card.type === '0n') return null;
-      // TODO
       const opval = this.opval(card);
       let n = 4;
       if (this.side === 's') {
@@ -132,7 +173,14 @@ class RandomBot extends Actor {
       } else {
          if (this.deck.u_space_n >= 1 || opval < 2) n --;
       }
-      const s = i_deck.random(n);
+      let s = i_deck.random(n);
+
+      // 114 古巴导弹危机
+      const cid114 = this.deck.turn_buf['114'];
+      if (cid114 && cid114.target === this.side) {
+         while(s === 2) s = i_deck.random(n);
+      }
+
       switch (s) {
       case 0: return 'i';
       case 1: return 'r';
@@ -145,7 +193,12 @@ class RandomBot extends Actor {
       const opval = effect.opval;
       const actions = effect.action || ['i', 'r', 'c'];
       let area = null;
-      const cmd = actions[i_deck.random(actions.length)];
+      let cmd = actions[i_deck.random(actions.length)];
+
+      // 221 尤里和萨曼莎
+      if (cmd === 'c' && this.deck.turn_buf['221'] && this.side === 'u') {
+         this.deck.vp --;
+      }
 
       if (effect.area) {
          area = {};
@@ -173,17 +226,26 @@ class RandomBot extends Actor {
          area = Object.keys(area);
       }
 
+      // if opval not enough, skip space race action
+      const spacelv = this.side === 's' ? this.deck.s_space : this.deck.u_space;
+      if (cmd === 's' && opval < space_op_req[spacelv]) {
+         while (cmd === 's') cmd = actions[i_deck.random(actions.length)];
+      }
+
       let r;
       switch(cmd) {
       case 'i': r = this.inf(opval, area); break;
       case 'r': r = this.realign(opval, area); break;
       case 'c': r = this.coup(opval, area); break;
+      case 's': r = this.spacerace(opval); break;
       }
 console.log('- effect', this.side, cmd, r, effect.area || '-');
       return [cmd, r, effect.area || '-'];
    }
    card_inf(opval, max, options) {
       const r = [];
+      const sign = max > 0 ? 1 : -1;
+      max = max > 0 ? max : -max;
       const limit = {};
       if (!options) options = Object.keys(this.deck.map.item);
       const map_inf_fn = this.side === 's' ? i_deck.s_map_inf : i_deck.u_map_inf;
@@ -193,8 +255,8 @@ console.log('- effect', this.side, cmd, r, effect.area || '-');
          const mobj = this.deck.map.item[mid];
          map_inf_fn(this.deck, mid);
          r.push(mid);
-         limit[mid] = (limit[mid] || 0) + 1;
-         if (limit[mid] >= max) options.splice(options.indexOf(mid), 1);
+         limit[mid] = (limit[mid] || 0) + sign;
+         if (sign * limit[mid] >= max) options.splice(options.indexOf(mid), 1);
          opval --;
       }
       return r;
@@ -220,6 +282,7 @@ console.log('- effect', this.side, cmd, r, effect.area || '-');
    inf(opval, options) {
       const r = [];
       if (!options) options = Object.keys(this.deck.map.item);
+      if (this.side === 's') options = s_filter_inf_options(this.deck, options);
       const finf = this.side === 's' ? 's_inf' : 'u_inf';
       const einf = this.side === 's' ? 'u_inf' : 's_inf';
       const map_inf_fn = this.side === 's' ? i_deck.s_map_inf : i_deck.u_map_inf;
@@ -232,12 +295,22 @@ console.log('- effect', this.side, cmd, r, effect.area || '-');
          }
          const i = i_deck.random(options.length);
          const mid = options[i];
-         if (mid === 1 || mid === 34) continue;
+         if (mid == 1 || mid == 34) continue;
          const mobj = this.deck.map.item[mid];
          map_inf_fn(this.deck, mid);
          opval -= 1 + (mobj[einf] - mobj[finf] >= mobj.stab ? 1 : 0);
          r.push(mid);
       }
+
+      // 18 越南起义
+      if (this.deck.turn_buf['18'] && this.side === 's' && r.reduce((a, x) => a+(this.deck.map.sea[x] ? 0:1), 0) === 0) {
+         const bak = this.deck.turn_buf['18'];
+         delete this.deck.turn_buf['18'];
+         const rx = this.inf(1, Object.keys(this.deck.map.sea));
+         if (rx && rx.length) r.push(rx[0]);
+         this.deck.turn_buf['18'] = bak;
+      }
+
       return r;
    }
    realign(opval, options) {
@@ -246,6 +319,7 @@ console.log('- effect', this.side, cmd, r, effect.area || '-');
       } else {
          options = build_realign_coup_default_options(this.deck);
       }
+      if (this.side === 's') s_filter_realign_coup_options(this.deck, options);
       const einf = this.side === 's' ? 'u_inf' : 's_inf';
       Object.keys(options).forEach(x => {
          const mobj = this.deck.map.item[x];
@@ -256,18 +330,36 @@ console.log('- effect', this.side, cmd, r, effect.area || '-');
 
       const map_realign_fn = this.side === 's' ? i_deck.s_map_realign : i_deck.u_map_realign;
       const r = [];
+      const sp = this.deck.s_player;
+      const up = this.deck.u_player;
       while (opval --) {
          const i = i_deck.random(options.length);
          const mid = options[i];
-         const dieval_a = i_deck.random(6) + 1;
-         const dieval_b = i_deck.random(6) + 1;
-         map_realign_fn(this.deck, dieval_a, dieval_b, mid);
+         let dieval_s = sp.roll_die();
+         let dieval_u = up.roll_die();
+
+         // 211 伊朗门丑闻
+         if (this.deck.turn_buf['211']) {
+            dieval_u --;
+         }
+
+         map_realign_fn(this.deck, dieval_s, dieval_u, mid);
          if (this.deck.map.item[mid][einf] <= 0) {
             options.splice(i, 1);
          }
          r.push(mid);
          if (!options.length) break;
       }
+
+      // 18 越南起义
+      if (this.deck.turn_buf['18'] && this.side === 's' && r.reduce((a, x) => a+(this.deck.map.sea[x] ? 0:1), 0) === 0) {
+         const bak = this.deck.turn_buf['18'];
+         delete this.deck.turn_buf['18'];
+         const rx = this.realign(1, Object.keys(this.deck.map.sea));
+         if (rx && rx.length) r.push(rx[0]);
+         this.deck.turn_buf['18'] = bak;
+      }
+
       return r;
    }
    coup(opval, options) {
@@ -279,6 +371,7 @@ console.log('- effect', this.side, cmd, r, effect.area || '-');
             Object.keys(this.deck.map.bf).forEach(x => { delete options[x]; });
          }
       }
+      if (this.side === 's') s_filter_realign_coup_options(this.deck, options);
       const einf = this.side === 's' ? 'u_inf' : 's_inf';
       Object.keys(options).forEach(x => {
          const mobj = this.deck.map.item[x];
@@ -289,7 +382,26 @@ console.log('- effect', this.side, cmd, r, effect.area || '-');
 
       const i = i_deck.random(options.length);
       const mid = options[i];
-      const dieval = i_deck.random(6) + 1;
+      let dieval = this.roll_die();
+
+      // 18 越南起义
+      if (this.deck.turn_buf['18'] && this.side === 's' && this.deck.map.sea[mid]) {
+         opval ++;
+      }
+      // 136 战略武器裁减谈判
+      if (this.deck.turn_buf['136']) {
+         dieval --;
+      }
+      // 138 拉丁美洲敢死队
+      const cid138 = this.deck.turn_buf['138'];
+      if (cid138 && (this.deck.map.ca[mid] || this.deck.map.sa[mid])) {
+         if (cid138.target === this.side) {
+            dieval --;
+         } else {
+            dieval ++;
+         }
+      }
+
       const map_coup_fn = this.side === 's' ? i_deck.s_map_coup : i_deck.u_map_coup;
       map_coup_fn(this.deck, opval, dieval, mid);
       return mid;
@@ -410,6 +522,14 @@ console.log('- effect', this.side, cmd, r, effect.area || '-');
       this.deck.card_pile = i_deck.card_pile_shuffle(this.deck.card_pile.concat(cs5));
       return r;
    }
+   cid106_cid110_buf_discard() {
+      const cards = this.side === 's' ? this.deck.s_cards : this.deck.u_cards;
+      const candidates = cards.filter(x => this.opval(x) >= 2);
+      if (!candidates.length) return null;
+      const card = candidates[i_deck.random(candidates.length)];
+      cards.splice(cards.indexOf(card), 1);
+      return card;
+   }
    cid108_choose_max() {
       const cards = this.side === 's' ? this.deck.s_cards : this.deck.u_cards;
       const max = cards.reduce((a, x) => Math.max(this.opval(x), a), 0);
@@ -460,4 +580,7 @@ module.exports = {
    RandomBot,
    scoring_cards,
    scoring_cards_area,
+   space_op_req,
+   s_filter_realign_coup_options,
+   s_filter_inf_options,
 };

@@ -3,6 +3,8 @@ const i_card = require('./card');
 
 function deck_new() {
    const deck = {};
+   deck.s_player = null;
+   deck.u_player = null;
    deck.map = map_new();
    deck.turn = 0;
    deck.card_pile_all = card_pile_new();
@@ -300,7 +302,8 @@ function u_map_coup(deck, opval, dieval, mid) {
          mobj.u_inf -= mobj.s_inf;
          mobj.s_inf = 0;
       }
-      if (mobj.bf) deck.defcon --;
+      // 144 核潜艇
+      if (mobj.bf && deck.turn_buf['144']) deck.defcon --;
       mobj.u_mop += opval;
       if (mobj.u_mop > 5) mobj.u_mop = 5;
    }
@@ -344,9 +347,29 @@ function deck_stat_area(deck, area_code) {
       }
       return isbf ? 1 : 0;
    }).reduce((a, x) => a+x, 0);
-   if (s0 + s_bf > u0 + u_bf && s_bf == bf_n) {
+
+   let cid33 = 0;
+   if (area_code === 'a') {
+      // 33 台湾决议
+      if (deck.game_buf['33']) {
+         cid33 = 1;
+         // Taiwan (China)
+         if (deck_check_control(deck, 83) < 0) {
+            u_bf ++;
+         }
+      }
+   }
+   if (deck.turn <= 10 && area_code === 'a' || area_code === 'me') {
+      // 113 穿梭外交
+      if (deck.game_buf['113']) {
+         s_bf --;
+         delete deck.game_buf['113'];
+      }
+   }
+
+   if (s0 + s_bf > u0 + u_bf && s_bf >= bf_n) {
       sstat = 3;
-   } else if (u0 + u_bf > s0 + s_bf && u_bf == bf_n) {
+   } else if (u0 + u_bf > s0 + s_bf && u_bf >= bf_n + cid33) {
       ustat = 3;
    } else {
       if (s0 > u0 && s_bf > u_bf) {
@@ -381,11 +404,13 @@ function deck_score_area(deck, area_code) {
    }
 
    const stat = deck_stat_area(deck, area_code);
+
    const sstat = stat[0], ustat = stat[1];
    const s_bf = stat[2], u_bf = stat[3];
    const scard = scoring_card[area_code];
    ss += s_bf + scard[sstat];
    us += u_bf + scard[ustat];
+
    deck.vp += us - ss;
 }
 
@@ -484,6 +509,22 @@ function deck_defcon_dec(deck, n) {
    if (deck.defcon < 1) deck.defcon = 1;
 }
 
+function deck_list_s_control(deck) {
+   return Object.keys(deck.map.item).filter(x => {
+      if (x == 1 || x == 34) return false;
+      if (deck_check_control(deck, x) > 0) return true;
+      return false;
+   });
+}
+
+function deck_list_u_control(deck) {
+   return Object.keys(deck.map.item).filter(x => {
+      if (x == 1 || x == 34) return false;
+      if (deck_check_control(deck, x) < 0) return true;
+      return false;
+   });
+}
+
 function wait_interaction() {
    const ref = {};
    const p = new Promise((r, e) => {
@@ -505,6 +546,8 @@ module.exports = {
    deck_defcon_set,
    deck_defcon_inc,
    deck_defcon_dec,
+   deck_list_s_control,
+   deck_list_u_control,
    card_pile_shuffle,
    wait_interaction,
    s_map_inf,
