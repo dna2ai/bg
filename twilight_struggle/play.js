@@ -503,9 +503,9 @@ console.log('- cid101', list.map(x => `${x.id} ${x.type} ${x.name}`));
       list.forEach(x => deck.discard_pile.push(x));
       while (n--) {
          const one = deck.card_pile.shift();
-         deck.s_cards.push(one);
+         deck.u_cards.push(one);
       }
-console.log('- cid101', deck.s_cards.map(x => `${x.id} ${x.type} ${x.name}`));
+console.log('- cid101', deck.u_cards.map(x => `${x.id} ${x.type} ${x.name}`));
       break; }
    case 102: { // 美洲进步同盟 * ok
       let u_vp = 0;
