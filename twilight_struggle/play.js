@@ -79,6 +79,7 @@ function tick_player_round(deck, fp, ep) {
          deck.discard_pile.push(c0);
          const dieval = deck.s_player.roll_die();
          if (dieval <= 4) delete deck.turn_buf['106'];
+console.log('- cid106:s', c0.id, c0.type, c0.name, dieval);
       } else cid106.lock = true;
    }
 
@@ -90,6 +91,7 @@ function tick_player_round(deck, fp, ep) {
          deck.discard_pile.push(c0);
          const dieval = deck.u_player.roll_die();
          if (dieval <= 4) delete deck.turn_buf['110'];
+console.log('- cid110:u', c0.id, c0.type, c0.name, dieval);
       } else cid110.lock = true;
    }
 
@@ -133,7 +135,7 @@ console.log(':', fp.side, card.id, card.type, card.name);
             effect.evact = false;
             if ((opev & 0x02) === 0) opevseq.push(2);
          }
-console.log('- event');
+console.log('- event', deck.vp);
       } else if (flag === 2) {
          effect.opact = true;
          const op = {
@@ -143,7 +145,10 @@ console.log('- event');
          };
          if (!effect.evact) op.action.push('s');
          const r = fp.card_effect_op_actions(card, op);
-         if (r[0] === 's') effect.opsr = true;
+         if (r[0] === 's') {
+            effect.opsr = true;
+console.log('- spacerace: s=', deck.s_space, 'u=', deck.u_space);
+         }
          if ((opev & 0x01) === 0 || effect.opsr) {
             deck.discard_pile.push(card);
          }
@@ -244,6 +249,7 @@ function act_event(deck, fp, ep, card, effect) {
       if (deck.turn >= 7) { applied = false; break; }
       const sp = deck.s_player;
       const cards = deck.u_cards.filter(x => scoring_cards.includes(x.id));
+console.log('- cid7:', cards.map(x => `${x.id} ${x.type} ${x.name}`));
       if (cards.length) {
          const area = scoring_cards_area[scoring_cards.indexOf(sp.cid7_area_choose(cards).id)];
          sp.card_inf(1, 1, Object.keys(deck.map[area]));
@@ -287,6 +293,7 @@ function act_event(deck, fp, ep, card, effect) {
          break;
       }
       const c0 = deck.s_cards[i_deck.random(deck.s_cards.length)];
+console.log('- cid11', c0.id, c0.type, c0.name);
       effect.discard = [c0.id];
       if (c0.type.charAt(1) === 'u') {
          const effect0 = {};
@@ -403,6 +410,7 @@ function act_event(deck, fp, ep, card, effect) {
       const up = deck.u_player;
       const c0 = up.cid26_discard();
       if (c0) {
+console.log('- cid26', c0.id, c0.type, c0.name);
          deck.u_cards.splice(deck.u_cards.indexOf(c0), 1);
          deck.discard_pile.push(c0);
       } else {
@@ -436,6 +444,7 @@ function act_event(deck, fp, ep, card, effect) {
       if (deck.turn_buf['107']) deck.vp --;
 
       const cards = side === 's' ? deck.s_cards : deck.u_cards;
+console.log('- cid30:', c0.id, c0.type, c0.name);
       cards.splice(cards.indexOf(c0), 1);
       deck.discard_pile.push(c0);
       effect.opval = fp.opval(c0);
@@ -489,12 +498,14 @@ function act_event(deck, fp, ep, card, effect) {
          deck.card_pile = i_deck.card_pile_shuffle(deck.card_pile.concat(deck.discard_pile));
          deck.discard_pile = [];
       }
+console.log('- cid101', list.map(x => `${x.id} ${x.type} ${x.name}`));
       // XXX: not sure it happens before shuffle or here
       list.forEach(x => deck.discard_pile.push(x));
       while (n--) {
          const one = deck.card_pile.shift();
          deck.s_cards.push(one);
       }
+console.log('- cid101', deck.s_cards.map(x => `${x.id} ${x.type} ${x.name}`));
       break; }
    case 102: { // 美洲进步同盟 * ok
       let u_vp = 0;
@@ -548,6 +559,7 @@ function act_event(deck, fp, ep, card, effect) {
          break;
       }
       const c0 = ep.cid108_choose_max();
+console.log('- cid108', c0.id, c0.type, c0.name);
       if (c0.type.charAt(1) === side) {
          const c0effect = {};
          act_event(deck, fp, ep, c0, c0effect);
@@ -633,6 +645,7 @@ function act_event(deck, fp, ep, card, effect) {
          applied = false;
          break;
       }
+console.log('- cid118', c0.id, c0.type, c0.name);
       const up = deck.u_player;
       if (up.cid118_return(c0)) {
          applied = false;
@@ -787,6 +800,7 @@ function act_event(deck, fp, ep, card, effect) {
       deck.turn_buf['136'] = {};
       const c0 = fp.cid136_choose_discard(deck.discard_pile.filter(x => x.type !== '0n'));
       if (c0) {
+console.log('- cid136', c0.id, c0.type, c0.name);
          deck.discard_pile.splice(deck.discard_pile.indexOf(c0), 1);
          (side === 's' ? deck.s_cards : deck.u_cards).push(c0);
          effect.pick = [c0.id];
@@ -886,6 +900,7 @@ function act_event(deck, fp, ep, card, effect) {
       const sp = deck.s_player;
       const c0 = sp.cid204_discard(deck.u_cards);
       if (!c0) { applied = false; break; }
+console.log('- cid204', c0.id, c0.type, c0.name);
       deck.u_cards.splice(deck.u_cards.indexOf(c0), 1);
       deck.discard_pile.push(c0);
       break; }
@@ -965,6 +980,7 @@ function act_event(deck, fp, ep, card, effect) {
          const c1i = i_deck.random(deck.u_cards.length);
          const c1 = deck.u_cards[c1i];
          if (c1) {
+console.log('- cid212:u.c1', c1.id, c1.type, c1.name);
             deck.u_cards.splice(c1i, 1);
             effect.discard.push(c1);
          }
@@ -974,6 +990,7 @@ function act_event(deck, fp, ep, card, effect) {
             const c2i = i_deck.random(deck.u_cards.length);
             const c2 = deck.u_cards[c1i];
             if (c2) {
+console.log('- cid212:u.c2', c2.id, c2.type, c2.name);
                deck.u_cards.splice(c2i, 1);
                effect.discard.push(c2);
             }
@@ -982,6 +999,7 @@ function act_event(deck, fp, ep, card, effect) {
          const c1i = i_deck.random(deck.s_cards.length);
          const c1 = deck.s_cards[c1i];
          if (c1) {
+console.log('- cid212:s', c1.id, c1.type, c1.name);
             deck.s_cards.splice(c1i, 1);
             effect.discard.push(c1);
          }
@@ -1029,6 +1047,7 @@ function act_event(deck, fp, ep, card, effect) {
       if (deck.u_space <= deck.s_space) { applied = false; break; }
       const c0 = fp.cid219_choose_discard(deck.discard_pile.filter(x => x.type !== '0n'));
       if (c0) {
+console.log('- cid219', c0.id, c0.type, c0.name);
          deck.discard_pile.splice(deck.discard_pile.indexOf(c0), 1);
          const c0effect = {};
          act_event(deck, fp, ep, c0, c0effect);
@@ -1049,6 +1068,7 @@ function act_event(deck, fp, ep, card, effect) {
       const up = deck.u_player;
       const c0 = up.cid222_discard();
       if (c0) {
+console.log('- cid222', c0.id, c0.type, c0.name);
          deck.u_cards.splice(deck.u_cards.indexOf(c0), 1);
          break;
       }
@@ -1146,6 +1166,7 @@ console.log(`\n>> [ Round ${round_n-deck.round} ]`);
          if (deck.s_player.choose_round8()) {
             tick_player_round(deck, s_player, u_player);
             if (check_game_over(deck, 's')) break;
+            if (deck.gameover) break;
          }
       }
       // 208 北海石油
@@ -1154,6 +1175,7 @@ console.log(`\n>> [ Round ${round_n-deck.round} ]`);
          if (deck.u_player.choose_round8()) {
             tick_player_round(deck, u_player, s_player);
             if (check_game_over(deck, 'u')) break;
+            if (deck.gameover) break;
          }
       }
       // spacerace-6
@@ -1176,6 +1198,7 @@ console.log(`\n>> [ Round ${round_n-deck.round} ]`);
          deck.u_player.card_inf(1, 1, Object.keys(deck.map.item).filter(x => deck.map.item[x].u_inf > 0));
       }
    } // action round "for"
+
    if (!deck.gameover && turn >= 10) {
       deck.turn ++;
 
@@ -1192,7 +1215,7 @@ console.log(`\n>> [ Round ${round_n-deck.round} ]`);
 
       deck.gameover = true;
    }
-   if (deck.gameover) console.log('winner:', deck.winner);
+   if (deck.gameover) console.log('winner:', deck.winner, deck.vp);
 }
 
 class Actor {
@@ -1208,18 +1231,36 @@ class Actor {
    realign(opval, options) {}
    coup(opval, options) {}
    spacerace(opval) {}
+   roll_die() {}
 
    cid1_cncard_only_asia() {}
    cid3_choose() {}
    cid7_area_choose(cids) {}
    cid19_boycott() {}
-
-   roll_die() {}
-
-   discard_card(cards, num) {}
-   draw_card(cards, num) {}
-   pick_card_from_discard(cards, num) {}
-
+   cid21_reinf_n() {}
+   cid24_choose() {}
+   cid26_discard() {}
+   cid30_intervetion() {}
+   cid35_remove_inf() {}
+   cid101_discard() {}
+   cid103_adjust() {}
+   cid106_cid110_buf_discard() {}
+   cid108_choose_max() {}
+   cid117_1in2() {}
+   cid118_return(card) {}
+   cid124_defcon_choose() {}
+   cid125_defcon_move() {}
+   cid135_choose() {}
+   cid136_choose_discard(cards) {}
+   cid139_choose(cards) {}
+   cid204_discard() {}
+   cid206_choose() {}
+   cid213_area_choose() {}
+   cid219_choose_discard(cards) {}
+   cid222_discard() {}
+   cid222_double() {}
+   choose_round8() {}
+   choose_discard_held() {}
    // pick_headline()
    // pick_round_card() -> choose_or_op_event()
    //    -> inf(), realign(), coup()
@@ -1326,7 +1367,7 @@ class RandomBot extends Actor {
          spacelv = this.deck.u_space;
          spacedid = this.deck.s_space_n > spacebuf;
       }
-      if (spacedid || opval < space_op_req[spacelv]) {
+      if (spacedid || opval < space_op_req[spacelv+1] || spacelv >= 8) {
          actions = actions.filter(x => x !== 's');
       }
 
@@ -1402,6 +1443,7 @@ console.log('- effect', this.side, cmd, r, effect.area || '-');
          if (sign * limit[mid] >= max) options.splice(options.indexOf(mid), 1);
          opval --;
       }
+console.log(`- op:card +${this.side}`, r);
       return r;
    }
    card_enemy_inf(opval, max, options) {
@@ -1420,6 +1462,7 @@ console.log('- effect', this.side, cmd, r, effect.area || '-');
          if (!mobj[einf] || limit[mid] >= max) options.splice(options.indexOf(mid), 1);
          opval --;
       }
+console.log(`- op:card -${this.side === "s" ? "u" : "s"}`, r);
       return r;
    }
    inf(opval, options) {

@@ -400,6 +400,7 @@ function deck_score_area(deck, area_code) {
          }
       });
       deck.vp += us - ss;
+console.log('- scoring: sea', 'ss=', ss, 'us=', us, JSON.stringify(deck.map.sea));
       return;
    }
 
@@ -412,6 +413,7 @@ function deck_score_area(deck, area_code) {
    us += u_bf + scard[ustat];
 
    deck.vp += us - ss;
+console.log('- scoring:', area_code, 'ss=', ss, '/', sstat, 'us=', us, '/', ustat, JSON.stringify(deck.map[area_code]));
 }
 
 function deck_spacerace_award(deck, side, noaward) {
