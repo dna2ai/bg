@@ -364,6 +364,9 @@ function deck_stat_area(deck, area_code) {
       if (deck.game_buf['113']) {
          s_bf --;
          delete deck.game_buf['113'];
+         const cid113 = deck.pin_pile.find(x => x.id === 113);
+         deck.pin_pile.splice(deck.pin_pile.indexOf(cid113), 1);
+         deck.discard_pile.push(cid113);
       }
    }
 
