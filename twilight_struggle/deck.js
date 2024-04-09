@@ -1,5 +1,6 @@
 const i_map = require('./map');
 const i_card = require('./card');
+const i_env = require('./env');
 
 function deck_new() {
    const deck = {};
@@ -115,24 +116,31 @@ function deck_turn_tick(deck) {
    // B
    const hand_size = deck.turn < 4 ? 8 : 9;
    const req_card_n = hand_size * 2 - deck.u_cards.length - deck.s_cards.length;
-if (deck.card_pile.filter(x => !x || !x.type).length) { console.log('error card pile:', deck.card_pile); throw "bug card_pile"; }
-if (deck.discard_pile.filter(x => !x || !x.type).length) { console.log('error discard pile:', deck.discard_pile); throw "bug discard_pile"; }
    if (req_card_n > deck.card_pile.length) {
       deck.card_pile = card_pile_shuffle(
          deck.card_pile.concat(deck.discard_pile)
       );
       deck.discard_pile = [];
    }
-   while (deck.s_cards.length < hand_size) {
-      const one = deck.card_pile.shift();
-      deck.s_cards.push(one);
+   let s_ok = false, u_ok = false;
+   while (!s_ok || !u_ok) {
+      if (!s_ok) {
+         if (deck.s_cards.length < hand_size) {
+            const one = deck.card_pile.shift();
+            deck.s_cards.push(one);
+         } else {
+            s_ok = true;
+         }
+      }
+      if (!u_ok) {
+         if (deck.u_cards.length < hand_size) {
+            const one = deck.card_pile.shift();
+            deck.u_cards.push(one);
+         } else {
+            u_ok = true;
+         }
+      }
    }
-   while (deck.u_cards.length < hand_size) {
-      const one = deck.card_pile.shift();
-      deck.u_cards.push(one);
-   }
-if (deck.s_cards.filter(x => !x || !x.type).length) { console.log('error s cards:', deck.s_cards); throw "bug s_cards"; }
-if (deck.u_cards.filter(x => !x || !x.type).length) { console.log('error u cards:', deck.u_cards); throw "bug u_cards"; }
 
    deck.s_space = Math.abs(deck.s_space);
    deck.u_space = Math.abs(deck.u_space);
@@ -403,7 +411,7 @@ function deck_score_area(deck, area_code) {
          }
       });
       deck.vp += us - ss;
-console.log('- scoring: sea', 'ss=', ss, 'us=', us, JSON.stringify(deck.map.sea));
+if (i_env.debug) console.log('- scoring: sea', 'ss=', ss, 'us=', us, JSON.stringify(deck.map.sea));
       return;
    }
 
@@ -416,7 +424,7 @@ console.log('- scoring: sea', 'ss=', ss, 'us=', us, JSON.stringify(deck.map.sea)
    us += u_bf + scard[ustat];
 
    deck.vp += us - ss;
-console.log('- scoring:', area_code, 'ss=', ss, '/', sstat, 'us=', us, '/', ustat, JSON.stringify(deck.map[area_code]));
+if (i_env.debug) console.log('- scoring:', area_code, 'ss=', ss, '/', sstat, 'us=', us, '/', ustat, JSON.stringify(deck.map[area_code]));
 }
 
 function deck_spacerace_award(deck, side, noaward) {
